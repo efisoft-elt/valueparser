@@ -49,9 +49,11 @@ def callable_to_fparse(func):
         return func(value)
     return fparse
 
-
+_parser_counter = 0
 def auto_name(obj):
-    return "Parser"
+    global _parser_counter
+    _parser_counter +=1
+    return f"Parser{_parser_counter:03f}"
 
 
 

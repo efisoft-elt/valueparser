@@ -79,3 +79,26 @@ assert float_parser.parse("1.234") == 1.234
 force_int_parser = parser( (float, int)) # parse to float then int 
 assert force_int_parser.parse( "1.234") == 1
 ```
+
+Actually the `parser` function accepts :
+
+- A Parser Class iddentified as a class with the `parse` method 
+- A callable 
+- An instance of a Parser Class
+- an mix inside an iterable 
+
+Plus any kwargs accepted by the combination of parsers
+
+Builtin Parsers 
+===============
+
+| class name |  kwargs | comment | 
+|--
+| Bounded    | min=-inf, max=+inf | raise an error if value outside interval else return value |
+| Clipped    | min=-inf, max=+inf | clip the value to inferior and superior bounds | 
+| Rounded    | ndigits=0          | round the numerical value to ndigits           |
+| Formated   | format="%s"        | convert to string with the given format        |
+| Listed     | items=[], default_item(optional) |  raise error if value not in items list else return value a
+|            |                                  | default_item can be set to be returned instead of error raised |
+| Numerated  | numerator                        | return enumerator(value) or raise error | 
+
