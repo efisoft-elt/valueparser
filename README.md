@@ -47,7 +47,9 @@ ratio_parser = MyParser( min=0, max=1, ndigits=2)
 ```
 
 
-`conparser` is a typing constructor to be use inside pydantic BaseModel 
+`conparser` works the same way than `parser` except it construct a typing object to be use inside pydantic BaseModel in
+a compact way.
+
 
 ```python 
 from parser import conparser, Bounded
