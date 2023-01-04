@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "valueparser"
+version = "0.1.1"
+description = "Python package for quick creation of tools to parse a value"
+authors = ["Sylvain Guieu <sylvain.guieu@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+systemy = "^0.1.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.2.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
