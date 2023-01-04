@@ -1,12 +1,25 @@
 import pytest 
 from enum import Enum 
-from parser import ParseError
-from parser import Bounded
-from parser import Clipped
-from parser import Listed
-from parser import Enumerated
-from parser import Rounded
-from parser import Formated
+from valueparser import ParseError, parser
+from valueparser import Bounded
+from valueparser import Clipped
+from valueparser import Listed
+from valueparser import Enumerated
+from valueparser import Rounded
+from valueparser import Formated
+from valueparser import Modulo
+from valueparser import Default, Int
+
+
+
+def test_type_parser():
+    p = parser("int")
+    assert p.parse(2.3) == 2
+    p = parser("Int")
+    assert p.parse(2.3) == 2
+    p = parser(Int)
+    assert p.parse(2.3) == 2
+
 
 def test_bounded_parser():
     p = Bounded()
@@ -64,5 +77,14 @@ def test_formated_parser():
     assert p.parse( (1,2) ).replace(" ", "") == "(1,2)"
 
 
+def test_modulo_parser():
+    p = Modulo( modulo=2)
+    assert p.parse(2)==0
+    assert p.parse(1)==1 
+    assert p.parse(3)==1
 
-
+def test_default_parser():
+    p = Default( default=10)
+    assert p.parse( None ) == 10 
+    assert p.parse( 0) == 0 
+    assert p.parse( 2) == 2

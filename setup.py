@@ -8,7 +8,7 @@ if sys.version_info < (3, 6, 0, 'final', 0):
 
 
 setup(
-    name= 'parser',
+    name= 'valueparser',
     version= '0.1', # https://www.python.org/dev/peps/pep-0440/
     author='Sylvain Guieu',
     author_email='sylvain.guieu@univ-grenoble-alpes.fr',
@@ -17,7 +17,7 @@ setup(
     #data_files=data_files,
     license='Creative Commons Attribution-Noncommercial-Share Alike license',
     long_description=open('README.md').read(),
-    install_requires=['pydantic>=1.9'],
+    install_requires=['systemy>=0.1'],
     
     extras_require={
     },
