@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic.main import BaseModel
 import pytest
 from valueparser import BaseParser, parser, parser_class, conparser
@@ -138,6 +139,15 @@ def test_conparser_in_model(MinBound, MaxBound):
     assert M( y="23").y == 23
 
 
+def test_embeded_conparser(MinBound, MaxBound):
+    MyVal = conparser( [MinBound, MaxBound], min=0, max=10)
+    class M(BaseModel):
+        x: Optional[MyVal] = None
+    m = M()
+    assert m.x is None
+    m = M(x=11)
+    assert m.x == 10.0
+
 def test_register():
     
     @register_parser_factory
@@ -153,3 +163,5 @@ def test_register():
     assert parser_class("P") is P
     assert parser("P").parse( 0) == 99 
     assert parser((int, "P"), default=999 ).parse( 0) == 999
+
+

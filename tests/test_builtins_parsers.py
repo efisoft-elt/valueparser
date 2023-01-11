@@ -1,5 +1,6 @@
 import pytest 
-from enum import Enum 
+from enum import Enum
+import datetime
 from valueparser import ParseError, parser
 from valueparser import Bounded
 from valueparser import Clipped
@@ -9,6 +10,7 @@ from valueparser import Rounded
 from valueparser import Formated
 from valueparser import Modulo
 from valueparser import Default, Int
+from valueparser.parsers import DateTime, Timestamp
 
 
 
@@ -88,3 +90,19 @@ def test_default_parser():
     assert p.parse( None ) == 10 
     assert p.parse( 0) == 0 
     assert p.parse( 2) == 2
+
+
+def test_timestamp():
+
+    p = Timestamp()
+    assert p.parse( datetime.datetime( 1970, 1, 1, 1)) == 0.0 
+    assert p.parse( '1970-01-01T01:00:00') == 0.0 
+    assert p.parse( 1.0 ) == 1.0
+
+def test_datetime():
+    p = DateTime()
+    d = datetime.datetime( 1970, 1, 1, 1)
+    assert p.parse(d ) == d
+    assert p.parse( '1970-01-01T01:00:00') == d 
+    assert p.parse(0.0) == d
+    

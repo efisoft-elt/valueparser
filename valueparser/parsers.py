@@ -1,11 +1,11 @@
 from typing import Any, Optional, Type, Union
 from valueparser.engine import BaseParser, parser_class, register_parser_factory
 from enum import Enum, auto
-
+import datetime 
 import math
 
 __all__ = ["Errors", "ParseError", "Bounded", "Clipped", "Listed", "Enumerated", 
-        "Default", "Rounded", "Formated", "Modulo", "Default"
+        "Default", "Rounded", "Formated", "Modulo", "Default", "Timestamp", "DateTime"
         ]
 
 
@@ -133,4 +133,37 @@ class Default(BaseParser):
         else:
             return value
 
+@register_parser_factory
+class Timestamp(BaseParser):
+    """ parse a datetime, a string (ISO format) or a float to a timestamp float """
+    class Config:
+        time_offset : float = 0.0
+    @staticmethod 
+    def __parse__(value: Union[str, datetime.datetime, float], config: Config) -> float:
+        if isinstance( value, datetime.datetime):
+            time = value.timestamp()
+        elif isinstance(value, str):
+            time = datetime.datetime.fromisoformat( value).timestamp()
+        elif isinstance( value, (float, int)):
+            time =  float(value)
+        else:
+            raise ValueError(f"expecting a datetime, a str (ISO) or a float got a {type(value)}")
+        return time+config.time_offset
+
+
+
+@register_parser_factory
+class DateTime(BaseParser):
+    """ Parse a datetime, a string (ISO format) or a float(timestamp)  to a datetime object """
+    @staticmethod
+    def __parse__(value:  Union[str, datetime.datetime, float], config)-> datetime.datetime:
+        if isinstance(value, datetime.datetime):
+            return value 
+        
+        if isinstance(value, str):
+            return datetime.datetime.fromisoformat( value)
+
+        if isinstance(value, float):
+            return datetime.datetime.fromtimestamp( value) 
+        raise ValueError(f"expecting a datetime, a str (ISO) or a float got a {type(value)}")
 
