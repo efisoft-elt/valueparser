@@ -1,6 +1,9 @@
+from enum import Enum
 from typing import Optional
 from pydantic.main import BaseModel
 import pytest
+from systemy.system import BaseSystem
+from build.lib.valueparser.engine import ParserFactory
 from valueparser import BaseParser, parser, parser_class, conparser
 from valueparser.engine import get_parser_factory_class, register_parser_factory
 
@@ -71,6 +74,20 @@ def test_parser_class_from_mixed_list(MinBound, MaxBound):
     assert p.parse('2.1') == 2 
     assert p.parse('11.34') == 10 
     assert p.parse(-1) == 0
+
+
+def test_parser_from_enum():
+    class E(Enum):
+        A = 0
+        B = 1 
+    assert parser(E).parse(0) is E.A
+    
+    class S(BaseSystem):
+        class Config:
+            parser: ParserFactory = None 
+    s = S(parser=E)
+    assert s.parser.parse(0) is E.A
+
 
 
 def test_parser_class_from_instance_of_parser(MinBound, MaxBound):
