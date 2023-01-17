@@ -1,6 +1,6 @@
 from typing import List, Optional
 import pytest 
-from valueparser import Bounded, Rounded, Clipped,  ParserFactory
+from valueparser import Bounded, Rounded, Clipped,  ParserFactory, parser
 from systemy import BaseSystem 
 
 def test_parser_factory_args():
@@ -62,4 +62,16 @@ def test_parser_factory_list():
     s = S( parsers=[int,{'type':"Clipped", "min":0, "max":2}])
     assert s.parsers[1].parse(3.4) == 2.0 
 
+def test_factory_with_func():
+    class S(BaseSystem):
+        class Config:
+            parser: Optional[ParserFactory] = []
+    s = S(parser=parser(float))
+    assert s.parser.parse("1.0") == 1.0
 
+def test_factory_with_func():
+    class S(BaseSystem):
+        class Config:
+            parser: Optional[ParserFactory] = []
+    s = S(parser=parser((float, Clipped)))
+    assert s.parser.parse("1.0") == 1.0

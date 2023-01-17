@@ -74,12 +74,16 @@ class ParserFactory(BaseFactory, Generic[ParserVar]):
     def validate(cls, v, field: ModelField):
         if field.sub_fields:
            raise ValueError("ParserFactory does not accept sub-fields") 
-
+        if isinstance(v, ParserFactory):
+            return v
         if isinstance(v, BaseParser.Config):
             return v
         if isinstance(v, BaseParser):
             return v.__config__
-
+        if isinstance(v, _CallableParser):
+            return ParserFactory(v._func) 
+        if isinstance(v, _WrapedCallableParser):
+            return  ParserFactory(v)
         return ParserFactory(v)
 
 
