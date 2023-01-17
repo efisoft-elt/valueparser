@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 import pytest 
 from valueparser import Bounded, Rounded, Clipped,  ParserFactory
 from systemy import BaseSystem 
@@ -25,10 +25,25 @@ def test_factory_inside_systemy():
     assert S().parser.parse(1) == 1.0
 
 
+def test_factory_inside_system_with_parser_config():
+    class S(BaseSystem):
+            class Config:
+                parser: Optional[ParserFactory] = None 
+
+    s = S( parser = Clipped.Config(max=1.0))
+    assert s.parser.parse(2.0) == 1.0  
+    s = S( parser = Clipped(max=1.0))
+    assert s.parser.parse(2.0) == 1.0  
+
+      
+
 def test_parser_factory_as_dict():
     p = ParserFactory( dict(type=[float, Clipped], min=0, max=10)).build()
     assert p.parse( "1") == 1
     assert p.parse(11) == 10
+    
+
+    
 
 def test_parser_factory_list():
 
