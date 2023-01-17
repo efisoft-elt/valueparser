@@ -1,6 +1,6 @@
 from typing import Any, Optional, Type, Union
 from valueparser.engine import BaseParser, parser_class, register_parser_factory
-from enum import Enum, auto
+from enum import Enum, EnumMeta, auto
 import datetime 
 import math
 
@@ -93,7 +93,26 @@ class Enumerated(BaseParser):
             return params.enumerator(value)
         except ValueError as err:
             raise ParseError( Errors.NOT_LISTED, str(err))
-        
+
+class _DumyError(Enum):
+    pass 
+
+@register_parser_factory
+class Error(BaseParser):
+    class Config:
+        Error: Type[Enum] = _DumyError
+        UNKNOWN: Enum = None 
+    
+    @staticmethod
+    def __parse__(value: Any, params: Config) -> Any:
+        try:
+            return params.Error(value)
+        except ValueError as err:
+            if params.UNKNOWN is None:
+                raise ParseError( Errors.NOT_LISTED, str(err))
+            return params.UNKNOWN
+
+
 @register_parser_factory
 class Rounded(BaseParser):
     class Config:

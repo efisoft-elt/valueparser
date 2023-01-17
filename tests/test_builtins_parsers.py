@@ -10,7 +10,7 @@ from valueparser import Rounded
 from valueparser import Formated
 from valueparser import Modulo
 from valueparser import Default, Int
-from valueparser.parsers import DateTime, Timestamp
+from valueparser.parsers import DateTime, Error, Timestamp
 
 
 
@@ -105,4 +105,18 @@ def test_datetime():
     assert p.parse(d ) == d
     assert p.parse( '1970-01-01T01:00:00') == d 
     assert p.parse(0.0) == d
-    
+   
+def test_error():
+    class E(int, Enum):
+        BAD_VALUE = 1
+        BAD_KEY = 2 
+        UNKNOWN = -9999
+    p = Error( Error=E, UNKNOWN=E.UNKNOWN)
+    assert p.parse(1) is E.BAD_VALUE
+    assert p.parse(10) is E.UNKNOWN
+
+    p = Error( Error=E)
+    with pytest.raises( ValueError):
+        p.parse(10)
+
+
