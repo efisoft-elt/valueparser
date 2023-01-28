@@ -3,7 +3,7 @@ from typing import Optional
 from pydantic.main import BaseModel
 import pytest
 from systemy.system import BaseSystem
-from build.lib.valueparser.engine import ParserFactory
+from valueparser.engine import ParserFactory
 from valueparser import BaseParser, parser, parser_class, conparser
 from valueparser.engine import get_parser_factory_class, register_parser_factory
 

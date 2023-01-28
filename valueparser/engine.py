@@ -21,10 +21,9 @@ class AbcParser(ABC):
             - raise ValueError exception 
         """
     
-class BaseParser(BaseSystem):
-    class Config(BaseSystem.Config, extra="forbid"):
+class BaseParser(BaseSystem, extra="forbid"):
+    class Config:
         ...
-
     @staticmethod        
     def __parse__(value:Any, config: Config):
         raise NotImplementedError("__parse__")
@@ -53,7 +52,7 @@ class ParserFactory(BaseFactory, Generic[ParserVar]):
         return super().parse_obj(obj)
 
     def build(self, parent=None, name=None):
-        return parser( self.type, **self.dict( exclude=set(['type'])) ) 
+        return parser( self.type, **self.dict( exclude={'type'}) ) 
     
     @root_validator
     def _check_args_validator(cls, values):
@@ -101,10 +100,10 @@ class _CombinedParser(BaseParser):
             value = f(value, config)
         return value 
 
-class _CallableParser(AbcParser):
-    def __init__(self, func: Callable):
+class _CallableParser(BaseParser):
+    def __init__(self, func: Callable, **kwargs):
+        super().__init__(**kwargs)
         self._func = func
-        self.__config__ = BaseParser.Config()
     def parse(self, value):
         return self._func(value)
 

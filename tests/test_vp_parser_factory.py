@@ -1,5 +1,6 @@
-from typing import List, Optional
-import pytest 
+from typing import  Optional
+import pytest
+from systemy.system import FactoryList 
 from valueparser import Bounded, Rounded, Clipped,  ParserFactory, parser
 from systemy import BaseSystem 
 
@@ -54,7 +55,7 @@ def test_parser_factory_list():
 
     class S(BaseSystem):
         class Config:
-            parsers: List[ParserFactory] = []
+            parsers: FactoryList[ParserFactory] = []
 
     s = S( parsers=[int,int]) 
     assert [p.parse(a) for p,a in zip(s.parsers, ["1", "2"])] == [1, 2]
