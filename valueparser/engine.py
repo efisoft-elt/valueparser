@@ -35,7 +35,7 @@ class BaseParser(BaseSystem, extra="forbid"):
 ParserVar = TypeVar('ParserVar')
 
 class ParserFactory(BaseFactory, Generic[ParserVar]):
-    type: Union[str,Callable, Type[AbcParser],List[Union[str,Callable,Type[AbcParser]]]]
+    type: Union[str,Callable, Type[AbcParser], BaseFactory, List[Union[str,Callable,Type[AbcParser]]]]
     class Config:
         extra = "allow"
     
@@ -76,6 +76,7 @@ class ParserFactory(BaseFactory, Generic[ParserVar]):
         if isinstance(v, ParserFactory):
             return v
         if isinstance(v, BaseParser.Config):
+
             return v
         if isinstance(v, BaseParser):
             return v.__config__

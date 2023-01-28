@@ -34,7 +34,9 @@ def test_factory_inside_system_with_parser_config():
     s = S( parser = Clipped.Config(max=1.0))
     assert s.parser.parse(2.0) == 1.0  
     s = S( parser = Clipped(max=1.0))
-    assert s.parser.parse(2.0) == 1.0  
+    assert s.parser.parse(2.0) == 1.0 
+test_factory_inside_system_with_parser_config()
+
 
 def test_factory_inside_system_with_callable():
     class S(BaseSystem):
