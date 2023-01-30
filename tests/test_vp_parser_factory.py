@@ -72,9 +72,9 @@ def test_factory_with_func():
     s = S(parser=parser(float))
     assert s.parser.parse("1.0") == 1.0
 
-def test_factory_with_func():
+def test_factory_with_dict():
     class S(BaseSystem):
         class Config:
             parser: Optional[ParserFactory] = []
-    s = S(parser=parser((float, Clipped)))
-    assert s.parser.parse("1.0") == 1.0
+    s = S(parser= {"type":(float, Clipped), "min":0.0, "max":1.0})
+    assert s.parser.parse("1.2") == 1.0

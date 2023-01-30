@@ -12,9 +12,8 @@ PARSER_NAMESPACE = "parser"
 PARSER_KIND = "Parser"
 
 # # ## ## ## ## ## ## ## ## # ## ## ## ## ## ### ## ## ## ## ## ## ## ## # ## ## ###
-ParserVar = TypeVar('ParserVar')
 
-class ParserFactory(BaseFactory, Generic[ParserVar]):
+class ParserFactory(BaseFactory):
     type: Union[str,Callable, Type, BaseFactory, List[Union[str,Callable,Type]]]
     class Config:
         extra = "allow"
@@ -55,10 +54,9 @@ class ParserFactory(BaseFactory, Generic[ParserVar]):
            raise ValueError("ParserFactory does not accept sub-fields") 
         if isinstance(v, ParserFactory):
             return v
-        if isinstance(v, BaseParser.Config):
-
+        if isinstance(v, Parser.Config):
             return v
-        if isinstance(v, BaseParser):
+        if isinstance(v, Parser):
             return v.__config__
         return ParserFactory(v)
 
