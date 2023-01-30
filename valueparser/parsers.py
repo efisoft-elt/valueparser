@@ -180,9 +180,9 @@ class DateTime(Parser):
             return value 
         
         if isinstance(value, str):
-            return datetime.datetime.fromisoformat( value)
+            return datetime.datetime.fromisoformat(value)
 
         if isinstance(value, float):
-            return datetime.datetime.fromtimestamp( value) 
+            return datetime.datetime.fromtimestamp(value) 
         raise ValueError(f"expecting a datetime, a str (ISO) or a float got a {type(value)}")
 
