@@ -61,6 +61,17 @@ class ParserFactory(BaseFactory):
         return ParserFactory(v)
 
 
+class ParserVar:
+    @classmethod
+    def __get_validators__(cls):
+        # one or more validators may be yielded which will be called in the
+        # order to validate the input, each validator will receive as an input
+        # the value returned from the previous validator
+        yield cls.validate
+    
+    @classmethod
+    def validate(cls, v, field: ModelField):
+        return ParserFactory.validate(v, field).build()
 
 
 
@@ -231,69 +242,20 @@ class Parsed(metaclass=ParsedMeta):
         return cls.__parser__.parse( value )
         
 
-ParserVar = TypeVar('ParserVar')
-class _ParserTyping(Generic[ParserVar]):
-    @classmethod
-    def __parse__(cls, value):
-        return value
-    
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-
-    @classmethod
-    def __modify_schema__(cls, field_schema):
-        pass
-
-    @classmethod
-    def validate(cls, v, field: ModelField):
-        
-        errors = []
-
-        if field.sub_fields:
-            if len(field.sub_fields)>1:
-                raise ValidationError(['to many field conparser() built type require and accept only one argument'], cls)
-            val_f = field.sub_fields[0]
-                       
-            valid_value, error = val_f.validate(v, {}, loc='value')
-            
-            if error:    
-                errors.append(error)
-        else:
-            val_f = v
-
-        if errors:
-            raise ValidationError(errors, cls)
-
-        valid_value = cls.__parse__(val_f)
-        
-        return valid_value
-    
-    def __repr__(self):
-        return f'{self.__class__.__name__}({super().__repr__()})'
-
 
 def conparser(obj, **kwargs):
     """ Build a field annotation for pydantic model 
-
-    Exemple:
-        
-        from pydantic import BaseModel 
-        from parser import conparser, Bounded
-        
-        Pixel = conparer( (int, Bounded), min=0, max=1023 )
     
-        class Model(BaseModel):
-            x: Pixel = 512
-            y: Pixel = 512
+    !!! This function is deprecated !!!
+    
+    e.g.:
+
+        conparer( (int, Bounded), min=0, max=1023 )
+    
+    if now replaced by: 
+
+        Parser[int, Bounded](min=0, max=1023).T 
+    
     """
     built_parser = parser( obj, **kwargs)
-    subclasses =  (_ParserTyping,) 
-
-    return type( built_parser.__class__.__name__+"Type", subclasses, 
-                 {"__parse__": staticmethod(built_parser.parse)}
-            )
-
-
-
-
+    return Parsed[built_parser]

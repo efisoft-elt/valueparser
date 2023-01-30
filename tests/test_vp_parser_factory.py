@@ -1,7 +1,8 @@
 from typing import  Optional
+from pydantic.main import BaseModel
 import pytest
 from systemy.system import FactoryList 
-from valueparser import Bounded, Rounded, Clipped,  ParserFactory, parser
+from valueparser import Bounded, Rounded, Clipped,  ParserFactory, parser, Parser, ParserVar
 from systemy import BaseSystem 
 
 def test_parser_factory_args():
@@ -78,3 +79,15 @@ def test_factory_with_dict():
             parser: Optional[ParserFactory] = []
     s = S(parser= {"type":(float, Clipped), "min":0.0, "max":1.0})
     assert s.parser.parse("1.2") == 1.0
+
+
+def test_parser_var():
+    class M(BaseModel):
+        parser: ParserVar = Parser[float]()
+        parser2: ParserVar = None 
+    m = M( 
+            parser2= {"type":["float", "Clipped"], "max":1.0}
+            )
+    assert m.parser.parse("1.2") == 1.2 
+    assert m.parser2.parse("1.2") == 1.0 
+

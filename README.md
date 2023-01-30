@@ -127,7 +127,6 @@ x
 Or use in pydantic Model: 
 
 ```python 
-from valueparser import conparser 
 from pydantic import BaseModel  
 
 class MyData(BaseModel):
@@ -138,6 +137,22 @@ my_data = MyData(x=0, y=0)
 my_data
 MyData(x=32.819723479459284, y=-25.95893228872207)
 ```
+
+If you want to include a parser inside a pydantic model you can use ParserVar  
+
+```python
+from valueparser import Parser , ParserVar
+from pydantic import BaseModel  
+
+class MyProcess(BaseModel):
+    parser: ParserVar = Parser()
+
+
+MyProcess( parser=float).parser.parse( "1.2") == 1.2 
+MyProcess( parser= dict( type=["float","Clipped"], min=0, max=1)  ).parser.parse( "1.2") == 1.0 
+
+```
+
 
 
 Parser and Systemy 
