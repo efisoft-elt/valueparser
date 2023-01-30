@@ -86,8 +86,15 @@ def _build_parser_class(cls_, items, name=None,  **config_kwargs):
     parsers = list( cls_.__iter_parsers__() )
     classes = []
     if isinstance(items, str):
+        if name is None:
+            if not config_kwargs:
+                return get_parser_factory_class(items).get_system_class()
         items = (items,)
     elif isinstance( items, type):
+        if name is None:
+            if not config_kwargs:
+                if issubclass( items, Parser):
+                    return items 
         items = (items,)
     elif isinstance( items, cls_):
         items = (items,)
@@ -110,7 +117,6 @@ def _build_parser_class(cls_, items, name=None,  **config_kwargs):
                 parsers.append( _callable_to_fparse(cls.parse)) 
             elif hasattr( cls, "__call__"):
                 parsers.append( _callable_to_fparse(cls)) 
-
 
     def __iter_parsers__(cls):
         for p in cls.__parsers__: 
@@ -171,6 +177,7 @@ def _auto_name(obj=None):
 
 
 def register_parser_factory(name, cls=None) -> None:
+    """ class decorator to register a new parser """
     return register_factory(name, cls, kind=PARSER_KIND)
 
 def get_parser_factory_class(name) -> BaseFactory:
@@ -200,21 +207,17 @@ def parser_class(
     return  _build_parser_class( Parser, obj, name=name)
 
 
-def parser_factory_class(obj, name=None):
-    Parser = parser_class(obj, name)
-    def build(self, parent=None, name=""):
-        path = self._make_new_path(parent, name)
-        return Parser( __config__= self, __path__=path)
-    return type( Parser.__name__+"Factory", (Parser.Config,), {"build": build})
-
-def parser_factory(obj, **kwargs):
-    return parser_factory_class(obj)(**kwargs)
-
 def parser(obj, **kwargs):
+    """ Build and instantiate a parser 
+    
+        > parser( (float,"Clipped"), min=0, max=10)
+    
+    Is equivalent to 
+    
+        > Parser[float, "Clipped"]( min=0, max=10)
+
+    """
     return parser_class(obj)(**kwargs)
-
-#
-
 
 
 class ParsedMeta(type):
@@ -228,6 +231,22 @@ class ParsedMeta(type):
         return type( cls.__name__+str(id(parser)), (cls, ), {'__parser__':parser})
 
 class Parsed(metaclass=ParsedMeta):
+    """ A validator for pydantic model using a Parser instance 
+    
+    .. note:: 
+        
+        ``Parsed[p]`` is equivalent to ``p.T``  where ``p`` is a Parser instance  
+
+    ::
+
+        from valueparser import Parser, Parsed, Clipped 
+        pixel = Parser[float, Clipped](min=0, max=256) 
+        class M(BaseModel):
+            x: Parsed[pixel] = 0 
+        
+        
+        
+    """
     __parser__ = None 
     @classmethod
     def __get_validators__(cls):
