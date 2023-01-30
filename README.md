@@ -29,7 +29,7 @@ parameters
 ```python 
 from valueparser import parser, Clipped, Rounded
 
-ratio_parser = parser( (float, Clipped, Rounded),  min=0, max=1.0, ndigits=2 )
+ratio_parser = Parser[float, Clipped, Rounded]( min=0, max=1.0, ndigits=2 )
 
 assert ratio_parser.parse( 0.231234) == 0.23 
 assert ratio_parser.parse( 4.5) == 1.0 
@@ -37,28 +37,20 @@ assert ratio_parser.parse( "0.12345") == 0.12
 
 ```
 
-Equivalent can be done by creating a new class 
-
-```python 
-from valueparser import parser_class, Clipped, Rounded
-
-MyParser = parser_class( (float, Clipped, Rounded), "MyParser" )
-ratio_parser = MyParser( min=0, max=1, ndigits=2)
-```
 
 
-`conparser` works the same way than `parser` except it construct a typing object to be use inside pydantic BaseModel in
-a compact way.
+
+A `parser` can make a typing object to be use inside pydantic BaseModel: 
 
 
 ```python 
-from valueparser import conparser, Bounded
+from valueparser import Bounded
 from pydantic import BaseModel 
 
-Pixel =  conparser( (int, Bounded), min=0, max=1023 ) 
+pixel =  Parser[int, Bounded]( min=0, max=1023 ) 
 class Data(BaseModel):
-    x: Pixel = 512
-    y: Pixel = 512
+    x: pixel.T = 512
+    y: pixel.T = 512
    
 Data(x=-200)
 
@@ -112,10 +104,10 @@ inside the child class ``Config``  and define the static or classmethod `__parse
 For instance a parser adding some noise to a value ( can be usefull for e.i. a simulator) 
 
 ```python
-from valueparser import BaseParser
+from valueparser import Parser
 import random 
 
-class Noisier(BaseParser):
+class Noisier(Parser):
     class Config:
         noise_scale = 1.0
     @staticmethod
@@ -132,16 +124,16 @@ x
 36.700125482238036
 ```
 
-Or use conparser in pydantic Model: 
+Or use in pydantic Model: 
 
 ```python 
 from valueparser import conparser 
 from pydantic import BaseModel  
 
 class MyData(BaseModel):
-    x: conparser(Noisier, noise_scale=100)
-    y: conparser(Noisier, noise_scale=100)
-
+    x: noisier.T 
+    y: noisier.T 
+    
 my_data = MyData(x=0, y=0)
 my_data
 MyData(x=32.819723479459284, y=-25.95893228872207)
@@ -164,14 +156,18 @@ dummy = lambda x:x
 class Node(BaseSystem):
     class Config:
         url: AnyUrl = "http://localhost:4840"
-        parser: ParserFactory = ParserFactory(type=dummy)
+        parser: ParserFactory = ParserFactory(dummy)
 
     def set(self, value):
         value = self.parser.parse(value) 
-        # set value on server 
+        # e.g. set value on a server 
         return value
 
 node = Node( parser={'type':(float,Bounded), 'min':0, 'max':10} )
+
+node.set(20)
+
+# ParseError: 20.0 is higher than 10.0
 ```
 
 

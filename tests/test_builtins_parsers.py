@@ -21,7 +21,12 @@ def test_type_parser():
     assert p.parse(2.3) == 2
     p = parser(Int)
     assert p.parse(2.3) == 2
-
+p = parser("int")
+assert p.parse(2.3) == 2
+p = parser("Int")
+assert p.parse(2.3) == 2
+p = parser(Int)
+assert p.parse(2.3) == 2
 
 def test_bounded_parser():
     p = Bounded()

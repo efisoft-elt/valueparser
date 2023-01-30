@@ -1,41 +1,21 @@
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, ABCMeta, abstractmethod, abstractproperty
 
 from abc import abstractmethod
 from typing import Any, Callable, Iterable, List, Type, TypeVar, Generic, Union
 from pydantic import BaseModel, Extra, ValidationError, root_validator
 from pydantic.fields import ModelField
+from pydantic.main import create_model
 
-from systemy import BaseSystem, BaseFactory, systemclass, register_factory, get_factory_class
+from systemy import BaseSystem, BaseFactory, register_factory, get_factory_class, storedproperty
 
 PARSER_NAMESPACE = "parser"
 PARSER_KIND = "Parser"
-
-class AbcParser(ABC):
-    @abstractmethod
-    def parse(self, value):
-        """ parse a value and return it 
-
-        The parser can
-            - leave value unchanged
-            - change a value to the one expected
-            - raise ValueError exception 
-        """
-    
-class BaseParser(BaseSystem, extra="forbid"):
-    class Config:
-        ...
-    @staticmethod        
-    def __parse__(value:Any, config: Config):
-        raise NotImplementedError("__parse__")
-
-    def parse(self, value):
-        return self.__parse__(value, self.__config__)
 
 # # ## ## ## ## ## ## ## ## # ## ## ## ## ## ### ## ## ## ## ## ## ## ## # ## ## ###
 ParserVar = TypeVar('ParserVar')
 
 class ParserFactory(BaseFactory, Generic[ParserVar]):
-    type: Union[str,Callable, Type[AbcParser], BaseFactory, List[Union[str,Callable,Type[AbcParser]]]]
+    type: Union[str,Callable, Type, BaseFactory, List[Union[str,Callable,Type]]]
     class Config:
         extra = "allow"
     
@@ -80,38 +60,7 @@ class ParserFactory(BaseFactory, Generic[ParserVar]):
             return v
         if isinstance(v, BaseParser):
             return v.__config__
-        if isinstance(v, _CallableParser):
-            return ParserFactory(v._func) 
-        if isinstance(v, _WrapedCallableParser):
-            return  ParserFactory(v)
         return ParserFactory(v)
-
-
-
-
-class _CombinedParser(BaseParser):
-    """ Auto built parser class from several parser classes """
-    @classmethod
-    def __get_parsers__(cls):
-        return tuple()
-    
-    @classmethod
-    def __parse__(cls, value, config):
-        for f in cls.__get_parsers__():
-            value = f(value, config)
-        return value 
-
-class _CallableParser(BaseParser):
-    def __init__(self, func: Callable, **kwargs):
-        super().__init__(**kwargs)
-        self._func = func
-    def parse(self, value):
-        return self._func(value)
-
-class _WrapedCallableParser(BaseSystem, AbcParser):
-    def parse(self, value):
-        raise NotImplementedError('parse')
-
 
 
 
@@ -123,95 +72,93 @@ def _callable_to_fparse(func):
         return func(value)
     return __parse__
 
+
+def _build_parser_class(cls_, items, name=None,  **config_kwargs):
+    parsers = list( cls_.__iter_parsers__() )
+    classes = []
+    if isinstance(items, str):
+        items = (items,)
+    elif isinstance( items, type):
+        items = (items,)
+    elif isinstance( items, cls_):
+        items = (items,)
+    elif not hasattr( items, "__iter__"):
+        items = (items,)
+     
+    for cls in items:
+        if isinstance( cls, str):
+            cls = get_parser_factory_class(cls).get_system_class()
+
+        if isinstance( cls, type):
+            if hasattr( cls, "__iter_parsers__"):
+                itp = cls.__iter_parsers__
+                parsers.extend( itp() )
+                classes.append(cls.Config) 
+            elif hasattr( cls, "__call__"):
+                    parsers.append( _callable_to_fparse(cls)) 
+        else:
+            if isinstance( cls, cls_):
+                parsers.append( _callable_to_fparse(cls.parse)) 
+            elif hasattr( cls, "__call__"):
+                parsers.append( _callable_to_fparse(cls)) 
+
+
+    def __iter_parsers__(cls):
+        for p in cls.__parsers__: 
+            yield p 
+        if cls.__parse__:
+            yield cls.__parse__ 
+
+    kwargs = {}
+    kwargs["__iter_parsers__"] = classmethod( __iter_parsers__)
+    kwargs["__parsers__"] = tuple(parsers)
+    kwargs["__parse__"] = None
+    if classes:
+        kwargs["Config"] = create_model(
+                "Config", 
+                __base__=tuple(classes), 
+                **config_kwargs
+            )
+    name = _auto_name() if not name else name 
+    return type(name, (cls_,), kwargs) 
+
+
+class ParserMeta(type(BaseSystem)):
+    def __getitem__(cls_, items):
+       return _build_parser_class(cls_, items) 
+
+
+class Parser(BaseSystem, metaclass=ParserMeta):
+    class Config:
+        ...
+    
+    @classmethod
+    def __iter_parsers__(cls):
+        yield cls.__parse__
+    
+    @staticmethod        
+    def __parse__(value:Any, config: Config):
+        return value
+        # raise NotImplementedError("__parse__")
+
+    def parse(self, value):
+        for p in self.__iter_parsers__():
+            value = p(value, self.__config__)
+        return value   
+    
+    @storedproperty
+    def T(self):
+        return Parsed[self] 
+
+    
+    
+BaseParser = Parser 
+
 _parser_counter = int(0)
-def _auto_name(obj):
+def _auto_name(obj=None):
     global _parser_counter
     _parser_counter +=1
     return f"Parser{_parser_counter:03d}"
-
-
-def _combine_config_class(lst: list, name) -> Type:
-    subclasses = []
-    for obj in lst:
-        if isinstance(obj, str):
-            Factory = get_parser_factory_class(obj)
-            obj = Factory.get_system_class()
-
-        if isinstance( obj, type):
-            try:
-                Config = obj.Config
-            except AttributeError:
-                continue
-            subclasses.append( Config)
-    subclasses = subclasses or [_CombinedParser.Config]
-    return type(name+"Config", tuple(subclasses), {})
-
-def _parser_class_from_list( lst, name):
-    fparses = []
-    for obj in lst:
-        if isinstance(obj, str):
-            Factory = get_parser_factory_class(obj)
-            obj = Factory.get_system_class()
-
-        if isinstance(obj, type):
-            if hasattr(obj, "__parse__"):
-                fparses.append( obj.__parse__)
-            elif hasattr(obj, "parse"):
-                fparses.append( _callable_to_fparse(obj.parse) )
-            elif hasattr(obj, "__call__"):
-                fparses.append( _callable_to_fparse(obj) )
-        elif hasattr(obj, "parse"):
-            fparses.append( _callable_to_fparse(obj.parse) )   
-        else:
-            raise ValueError(f"bad argument for parser_class {obj!r}")
-    fparses = tuple(fparses)
-    def __get_parsers__(cls):
-        return fparses
-    Config = _combine_config_class(lst, name)
-    return systemclass(type( name, (_CombinedParser, ), {"__get_parsers__":classmethod(__get_parsers__), "Config":Config}))
-        
-
-
-# _parser_factory_loockup = {}
-# """ Dictionary containing all target """
-
-# def register_parser_factory(name, cls=None):
-#     """ Record a parser with its name 
-    
-#     Usage:
-#         @register_parser(name) 
-#         class MyParser(BaseParser):
-#             ...
-
-#         Or 
-
-#         register_parser(name, MyParser)
-
-#     """
-#     if isinstance(name, type) and cls is None:
-#         name, cls = name.__name__, name
-           
-#     def parser_recorder(icls):
-#         if issubclass(icls, BaseParser):
-#             fcls = icls.Config
-#         else:
-#             fcls = icls 
-#         if not hasattr(fcls, "build"):
-#             raise ValueError("Factory must have a `build` method")
-#         _parser_factory_loockup[name] = fcls
-#         return icls
-    
-#     if cls:
-#         return parser_recorder(cls)
-#     else:
-#         return parser_recorder
-        
-
-# def get_parser_factory(name):
-#     try:
-#         return _parser_factory_loockup[name]
-#     except KeyError:
-#         raise ValueError(f"Unknown parser {name!r}")
 
 
 def register_parser_factory(name, cls=None) -> None:
@@ -221,9 +168,9 @@ def get_parser_factory_class(name) -> BaseFactory:
     return get_factory_class(name, kind=PARSER_KIND)
 
 def parser_class(
-            obj: Union[Callable, Type[AbcParser], str, Iterable[Union[Callable, Type[AbcParser], str]] ], 
+            obj: Union[Callable, Type, str, Iterable[Union[Callable, Type, str]] ], 
             name: str = None
-        ) -> Type[AbcParser]:
+        ) -> Type:
     """ Build a new parser class for various inputs types 
 
     Args:
@@ -234,30 +181,14 @@ def parser_class(
             - an iterable of a mix of above object kind
         name (str, optional): is the new class name. If not given one is created.  
     """
+    if isinstance( obj, type):
+        if issubclass(obj, Parser):
+            if name is None:
+                return obj 
     if isinstance(obj, str):
-        Factory = get_parser_factory_class(obj)
-        obj = Factory.get_system_class()
-         
-    if isinstance( obj, type) and hasattr(obj, "parse"):
-        if name is None:
-            return obj 
-        return type( name, (obj,),  {})
+        return get_factory_class(obj).get_system_class() 
 
-    if name is None:
-        name = _auto_name(obj)
-    
-    
-    if hasattr(obj, "__call__"):
-        return (type(name , (_WrapedCallableParser, ), {"parse": staticmethod(obj)}))
-
-    
-    if hasattr(obj, 'parse'):
-        return (type(name , (_WrapedCallableParser, ), {"parse": staticmethod(obj.parse)}))
-
-    if hasattr(obj, "__iter__"):
-        return  _parser_class_from_list(obj, name)
-
-    raise ValueError("Bad Argument for parser_class")
+    return  _build_parser_class( Parser, obj, name=name)
 
 
 def parser_factory_class(obj, name=None):
@@ -271,26 +202,36 @@ def parser_factory(obj, **kwargs):
     return parser_factory_class(obj)(**kwargs)
 
 def parser(obj, **kwargs):
-    if isinstance(obj, type) and hasattr(obj, "parse"):
-        return obj(**kwargs)
-
-    if hasattr(obj, "__call__"):
-        if kwargs:
-            raise ValueError("parser from a callable does not accept kwargs")
-        return _CallableParser(obj)
-    if hasattr(obj, "__iter__"):
-        Parser = parser_class( obj)
-        return Parser( **kwargs)
-    if hasattr(obj, "parse"):
-        if kwargs:
-            raise ValueError("parser from a Parser Class does not accept kwargs")
-
-        return obj
-    raise ValueError("bad argument for parser")
-
-
+    return parser_class(obj)(**kwargs)
 
 #
+
+
+
+class ParsedMeta(type):
+    def __getitem__(cls, parser):
+        if isinstance( parser, tuple):
+            if len(parser) == 1:
+                parser, = parser 
+            else:
+                raise ValueError( "Parsed[parser] accept only one item, a Parser ")
+        
+        return type( cls.__name__+str(id(parser)), (cls, ), {'__parser__':parser})
+
+class Parsed(metaclass=ParsedMeta):
+    __parser__ = None 
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, value, field: ModelField):
+        if field.sub_fields:
+            raise ValidationError(['to many sub-field'], cls)
+        if cls.__parser__ is None:
+            return value 
+        return cls.__parser__.parse( value )
+        
 
 ParserVar = TypeVar('ParserVar')
 class _ParserTyping(Generic[ParserVar]):

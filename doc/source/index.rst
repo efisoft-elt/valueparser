@@ -9,7 +9,8 @@ Welcome to parser's documentation!
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
-
+    
+   valueparser
 
 
 Indices and tables

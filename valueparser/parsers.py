@@ -1,5 +1,5 @@
 from typing import Any, Optional, Type, Union
-from valueparser.engine import BaseParser, parser_class, register_parser_factory
+from valueparser.engine import Parser, parser_class, register_parser_factory
 from enum import Enum, EnumMeta, auto
 import datetime 
 import math
@@ -26,7 +26,7 @@ def _make_global_parsers(types):
         Tpe = tpe.__name__.capitalize()
         
         cls = parser_class(tpe, name=Tpe) 
-        register_parser_factory(cls)
+        register_parser_factory(Tpe, cls)
         register_parser_factory(tpe.__name__, cls)
         # record_class(cls, type=tpe.__name__)
         globals()[ Tpe ] = cls
@@ -36,7 +36,7 @@ _make_global_parsers([int, float, complex, bool, str, tuple, set, list])
 
 
 @register_parser_factory    
-class Bounded(BaseParser):
+class Bounded(Parser):
     class Config:
         min: float = -math.inf
         max: float = math.inf
@@ -50,7 +50,7 @@ class Bounded(BaseParser):
         return value
 
 @register_parser_factory
-class Clipped(BaseParser):
+class Clipped(Parser):
     class Config:
         min: float = -math.inf
         max: float = math.inf
@@ -66,7 +66,7 @@ _empty_ = _Empty_()
 
 
 @register_parser_factory
-class Listed(BaseParser):
+class Listed(Parser):
     class Config:
         items: list = []
         default_item: Any = _empty_
@@ -83,7 +83,7 @@ class Listed(BaseParser):
 
 
 @register_parser_factory
-class Enumerated(BaseParser):
+class Enumerated(Parser):
     class Config:
         enumerator: Type[Enum]
     
@@ -98,7 +98,7 @@ class _DumyError(Enum):
     pass 
 
 @register_parser_factory
-class Error(BaseParser):
+class Error(Parser):
     class Config:
         Error: Type[Enum] = _DumyError
         UNKNOWN: Enum = None 
@@ -114,7 +114,7 @@ class Error(BaseParser):
 
 
 @register_parser_factory
-class Rounded(BaseParser):
+class Rounded(Parser[float]):
     class Config:
         ndigits: Optional[int] = 0
     
@@ -123,7 +123,7 @@ class Rounded(BaseParser):
         return round(value, params.ndigits) 
 
 @register_parser_factory
-class Formated(BaseParser):
+class Formated(Parser):
     class Config:
         format: str = "%s"
     
@@ -132,7 +132,7 @@ class Formated(BaseParser):
         return params.format%( value, ) 
 
 @register_parser_factory
-class Modulo(BaseParser):
+class Modulo(Parser[float]):
     class Config:
         modulo: int = 1
 
@@ -141,7 +141,7 @@ class Modulo(BaseParser):
         return value%params.modulo
 
 @register_parser_factory
-class Default(BaseParser):
+class Default(Parser):
     class Config:
         default: Any
 
@@ -153,7 +153,7 @@ class Default(BaseParser):
             return value
 
 @register_parser_factory
-class Timestamp(BaseParser):
+class Timestamp(Parser):
     """ parse a datetime, a string (ISO format) or a float to a timestamp float """
     class Config:
         time_offset : float = 0.0
@@ -172,7 +172,7 @@ class Timestamp(BaseParser):
 
 
 @register_parser_factory
-class DateTime(BaseParser):
+class DateTime(Parser):
     """ Parse a datetime, a string (ISO format) or a float(timestamp)  to a datetime object """
     @staticmethod
     def __parse__(value:  Union[str, datetime.datetime, float], config)-> datetime.datetime:
