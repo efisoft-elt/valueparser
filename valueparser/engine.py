@@ -193,7 +193,7 @@ def parser_class(
         obj: can be
             - a callable  (e.g. int ) 
             - a parser object: an object with the ``parse`` method  
-            - a :class:`BaseParser` (which is returned as is if name is None)  
+            - a :class:`Parser` (which is returned as is if name is None)  
             - an iterable of a mix of above object kind
         name (str, optional): is the new class name. If not given one is created.  
     """
