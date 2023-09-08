@@ -1,5 +1,9 @@
 from typing import  Optional
-from pydantic.main import BaseModel
+try:
+    from pydantic.v1 import BaseModel
+except ModuleNotFoundError:
+    from pydantic import BaseModel
+
 import pytest
 from systemy.system import FactoryList 
 from valueparser import Bounded, Rounded, Clipped,  ParserFactory, parser, Parser, ParserVar

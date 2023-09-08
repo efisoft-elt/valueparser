@@ -1,10 +1,13 @@
-from abc import ABC, ABCMeta, abstractmethod, abstractproperty
 
-from abc import abstractmethod
-from typing import Any, Callable, Iterable, List, Type, TypeVar, Generic, Union
-from pydantic import BaseModel, Extra, ValidationError, root_validator
-from pydantic.fields import ModelField
-from pydantic.main import create_model
+from typing import Any, Callable, Iterable, List, Type,  Union
+
+try:
+    from pydantic.v1 import ValidationError, root_validator, create_model
+    from pydantic.v1.fields import ModelField
+except ModuleNotFoundError:
+    from pydantic import ValidationError, root_validator, create_model
+    from pydantic.fields import ModelField
+   
 
 from systemy import BaseSystem, BaseFactory, register_factory, get_factory_class, storedproperty
 
@@ -49,9 +52,9 @@ class ParserFactory(BaseFactory):
         yield cls.validate
     
     @classmethod
-    def validate(cls, v, field: ModelField):
-        if field.sub_fields:
-           raise ValueError("ParserFactory does not accept sub-fields") 
+    def validate(cls, v):
+        # if field.sub_fields:
+        #    raise ValueError("ParserFactory does not accept sub-fields") 
         if isinstance(v, ParserFactory):
             return v
         if isinstance(v, Parser.Config):
@@ -70,8 +73,8 @@ class ParserVar:
         yield cls.validate
     
     @classmethod
-    def validate(cls, v, field: ModelField):
-        return ParserFactory.validate(v, field).build()
+    def validate(cls, v):
+        return ParserFactory.validate(v).build()
 
 
 
@@ -154,7 +157,6 @@ class Parser(BaseSystem, metaclass=ParserMeta):
     @staticmethod        
     def __parse__(value:Any, config: Config):
         return value
-        # raise NotImplementedError("__parse__")
 
     def parse(self, value):
         for p in self.__iter_parsers__():

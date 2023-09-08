@@ -1,4 +1,7 @@
-from pydantic.main import BaseModel
+try: 
+    from pydantic.v1 import BaseModel
+except ModuleNotFoundError:
+    from pydantic import BaseModel
 from valueparser.parsers import Clipped, Formated
 from valueparser.engine import Parsed, Parser
 
